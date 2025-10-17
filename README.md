@@ -313,3 +313,10 @@ See the "Multi-instance support" section above for recommended configuration wit
 
 ## Approval
 - If this design matches expectations, the next steps are to update dependencies, scaffold files, and implement the two tools. See the todo list in this workspace.
+## First-Run and Model Initialization Behavior
+
+- On server startup, the sentence-transformer model is downloaded in the background.
+- A background initial reindex is triggered automatically after the model is ready (no need to call reindex manually on first run).
+- If a search is called before or during model setup, it will wait up to 5 seconds for the model to become ready. If the model is not ready within 5 seconds, search returns an empty result set (no error).
+- Once the model is ready and the background reindex completes, search will return results as expected.
+- This ensures that search never fails or blocks indefinitely, even if called immediately after server startup.

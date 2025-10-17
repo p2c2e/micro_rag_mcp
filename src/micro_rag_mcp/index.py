@@ -3,8 +3,8 @@ import sys
 import time
 from pathlib import Path
 from typing import Dict, List, Optional, Set
-import faiss
 import numpy as np
+from typing import Any
 from .types import ChunkRecord, FileRecord, Config
 from .embedder import Embedder
 from .ingest import process_file
@@ -21,7 +21,7 @@ class IndexManager:
         self.files_path = Path(config.index_folder) / "files.json"
         self.lock_path = Path(config.index_folder) / "index.lock"
         self.version_path = Path(config.index_folder) / "version"
-        self.index: Optional[faiss.Index] = None
+        self.index: Optional[Any] = None  # faiss.Index, but avoid import at module load
         self.manifest: Dict[int, ChunkRecord] = {}
         self.files: Dict[str, FileRecord] = {}
         self.next_id = 0
@@ -43,6 +43,7 @@ class IndexManager:
 
     def load_index(self):
         """Load FAISS index and manifest."""
+        import faiss
         self.index = faiss.read_index(str(self.index_path))
         with open(self.manifest_path, 'r') as f:
             for line in f:
@@ -56,6 +57,7 @@ class IndexManager:
 
     def save_index(self):
         """Save FAISS index and manifest."""
+        import faiss
         faiss.write_index(self.index, str(self.index_path))
         with open(self.manifest_path, 'w') as f:
             for record in self.manifest.values():
@@ -125,6 +127,7 @@ class IndexManager:
                 # Initialize index if needed
                 if self.index is None:
                     print("[DEBUG] Initializing index on first reindex...", file=sys.stderr, flush=True)
+                    import faiss
                     self.index = faiss.IndexFlatIP(self.embedder.dim)
                 
                 embeddings = self.embedder.encode_batch(texts)
@@ -159,13 +162,17 @@ class IndexManager:
             release_lock(self.lock_path)
 
     def search(self, query: str, top_k: int = 5, score_threshold: float = 0.2) -> List[dict]:
-        """Search the index."""
+        """Search the index, waiting up to 5s for model readiness if needed."""
+        # Wait up to 5s for model readiness
+        if not self.embedder.wait_until_loaded(timeout=5):
+            print("[DEBUG] Model not ready after 5s in search; returning empty results", file=sys.stderr, flush=True)
+            return []
         # Initialize index if needed
         if self.index is None:
             print("[DEBUG] Initializing index on first search...", file=sys.stderr, flush=True)
+            import faiss
             self.index = faiss.IndexFlatIP(self.embedder.dim)
             self.save_index()
-        
         if self.index.ntotal == 0:
             print("Search: index empty", file=sys.stderr)
             return []

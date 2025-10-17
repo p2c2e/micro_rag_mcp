@@ -1,8 +1,9 @@
 import sys
 import threading
 import numpy as np
-from sentence_transformers import SentenceTransformer
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING, Any
+if TYPE_CHECKING:
+    SentenceTransformer = Any
 
 
 class Embedder:
@@ -15,20 +16,40 @@ class Embedder:
 
         def _load_model():
             print(f"[DEBUG] Loading sentence-transformers model: {self.model_name}", file=sys.stderr, flush=True)
-            self._model = SentenceTransformer(self.model_name)
-            self._dim = self._model.get_sentence_embedding_dimension()
-            self._loaded.set()
-            print(f"[DEBUG] Model loaded successfully, dim={self._dim}", file=sys.stderr, flush=True)
+            try:
+                from sentence_transformers import SentenceTransformer
+                self._model = SentenceTransformer(self.model_name)
+                self._dim = self._model.get_sentence_embedding_dimension()
+                print(f"[DEBUG] Model loaded successfully, dim={self._dim}", file=sys.stderr, flush=True)
+            except Exception as e:
+                print(f"[ERROR] Model loading failed: {e}", file=sys.stderr, flush=True)
+            finally:
+                self._loaded.set()
 
         threading.Thread(target=_load_model, daemon=True).start()
         print(f"[DEBUG] Embedder.__init__ completed (model loading started in background)", file=sys.stderr, flush=True)
-    
+
     def _ensure_model_loaded(self):
         """Ensure the model is loaded, waiting if necessary."""
         self._loaded.wait()
-    
+
+    def wait_until_loaded(self, timeout: float = None) -> bool:
+        """
+        Wait until the model is loaded, with optional timeout.
+        Returns True if loaded, False if timeout.
+        """
+        result = self._loaded.wait(timeout)
+        if not result:
+            print(f"[DEBUG] wait_until_loaded: model not ready after {timeout}s", file=sys.stderr, flush=True)
+        return result
+
     @property
-    def model(self) -> SentenceTransformer:
+    def is_loaded(self) -> bool:
+        """Check if the model is loaded (non-blocking)."""
+        return self._loaded.is_set()
+
+    @property
+    def model(self) -> Any:
         """Get the model, loading it if necessary."""
         self._ensure_model_loaded()
         assert self._model is not None
