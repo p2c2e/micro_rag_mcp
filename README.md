@@ -18,6 +18,47 @@ Minimal, local Retrieval Augmented Generation indexing and search MCP server for
 - Concurrency: simple file lock index.lock to serialize reindex operations
 - Logging: human logs to stderr; tool results are structured
 
+## Multi-instance support
+
+- You can run multiple independent MCP server instances by specifying different `--title` and `--inst` arguments for each process.
+- Both `--title` and `--inst` are **required**.
+- The `--title` is used as the FastMCP server name.
+- The `--inst` is passed verbatim as the FastMCP instructions (can be a sentence, multi-line, etc).
+- The default index location remains `<data_folder>/index` for all instances unless you override with `--index-folder`.
+
+### Example MCP config with two instances
+
+```json
+{
+  "mcpServers": {
+    "team_alpha": {
+      "command": "uvx",
+      "args": [
+        "micro-rag-mcp@0.1.4",
+        "--data-folder", "/docs/teamA",
+        "--title", "Secret Islands",
+        "--inst", "Team Alpha read-only mode with nightly refresh"
+      ]
+    },
+    "team_beta": {
+      "command": "uvx",
+      "args": [
+        "micro-rag-mcp@0.1.4",
+        "--data-folder", "/docs/teamB",
+        "--title", "Secret Islands",
+        "--inst", "Team Beta write-enabled with manual refresh"
+      ]
+    }
+  }
+}
+```
+
+- To use multi-line instructions, use `\n` inside the string:
+  - `"--inst", "Team Alpha\nRead-only\nRefresh: 02:00 IST"`
+
+- Each item in the `args` array is a single argument; spaces and newlines are preserved as part of the string.
+
+
 ## Minimal architecture
 
 ### Planned source files
@@ -148,13 +189,13 @@ sequenceDiagram
 - One off run
 
 ```bash
-uvx micro-rag-mcp --data-folder /some/hr_docs
+uvx micro-rag-mcp --data-folder /some/hr_docs --title "HR RAG" --inst "HR instance for confidential search"
 ```
 
 - Override defaults
 
 ```bash
-uvx micro-rag-mcp --data-folder /some/docs --index-folder /some/docs/index --exts .txt,.md,.pdf,.docx
+uvx micro-rag-mcp --data-folder /some/docs --index-folder /some/docs/index --exts .txt,.md,.pdf,.docx --title "Docs RAG" --inst "Docs instance"
 ```
 
 ## Local testing before PyPI upload
@@ -218,22 +259,8 @@ python -c "import micro_rag_mcp; print('Import successful')"
 
 ## MCP client configuration examples
 
-### Claude Desktop settings json
+See the "Multi-instance support" section above for recommended configuration with required `--title` and `--inst` arguments.
 
-```json
-{
-  "mcpServers": {
-    "hr_rag": {
-      "command": "uvx",
-      "args": ["micro-rag-mcp", "--data-folder", "/some/hr_docs"]
-    },
-    "marketing_rag": {
-      "command": "uvx",
-      "args": ["micro-rag-mcp", "--data-folder", "/some/mktg_docs"]
-    }
-  }
-}
-```
 
 ## Dependencies to declare in [pyproject.toml](pyproject.toml)
 - mcp

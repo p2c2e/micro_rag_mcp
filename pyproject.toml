@@ -1,6 +1,6 @@
 [project]
 name = "micro-rag-mcp"
-version = "0.1.2"
+version = "0.1.4"
 description = "Minimal local RAG MCP server for document folders"
 readme = "README.md"
 requires-python = ">=3.12"

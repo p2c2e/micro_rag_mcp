@@ -9,15 +9,15 @@ import asyncio
 
 class MicroRAGServer:
     def __init__(self, config: Config):
-        print("[DEBUG] MicroRAGServer.__init__ starting...", file=sys.stderr, flush=True)
+        print(f"[DEBUG][{config.title}|{config.inst}] MicroRAGServer.__init__ starting...", file=sys.stderr, flush=True)
         self.config = config
-        print("[DEBUG] Creating Embedder...", file=sys.stderr, flush=True)
+        print(f"[DEBUG][{config.title}|{config.inst}] Creating Embedder...", file=sys.stderr, flush=True)
         self.embedder = Embedder()
-        print("[DEBUG] Creating IndexManager...", file=sys.stderr, flush=True)
+        print(f"[DEBUG][{config.title}|{config.inst}] Creating IndexManager...", file=sys.stderr, flush=True)
         self.index_manager = IndexManager(config, self.embedder)
-        print("[DEBUG] Creating FastMCP instance...", file=sys.stderr, flush=True)
-        self.mcp = FastMCP("micro-rag-mcp")
-        print("[DEBUG] Registering tools...", file=sys.stderr, flush=True)
+        print(f"[DEBUG][{config.title}|{config.inst}] Creating FastMCP instance...", file=sys.stderr, flush=True)
+        self.mcp = FastMCP(name=config.title, instructions=config.inst)
+        print(f"[DEBUG][{config.title}|{config.inst}] Registering tools...", file=sys.stderr, flush=True)
 
         @self.mcp.tool()
         async def search(query: str, top_k: int = 5, score_threshold: float = 0.2) -> list[SearchResult]:
@@ -34,5 +34,5 @@ class MicroRAGServer:
         print("[DEBUG] Tools registered successfully", file=sys.stderr, flush=True)
 
     def run(self):
-        print("[DEBUG] Starting MCP server run()...", file=sys.stderr, flush=True)
+        print(f"[DEBUG][{self.config.title}|{self.config.inst}] Starting MCP server run()...", file=sys.stderr, flush=True)
         self.mcp.run()

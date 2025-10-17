@@ -48,3 +48,5 @@ class Config(BaseModel):
     index_folder: str
     exts: List[str]
     rebuild_threshold: Optional[int] = None
+    title: str
+    inst: str

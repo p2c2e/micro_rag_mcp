@@ -28,6 +28,16 @@ def main():
         type=int,
         help="Optional threshold for full rebuild (not implemented yet)"
     )
+    parser.add_argument(
+        "--title",
+        required=True,
+        help="FastMCP server name (required)"
+    )
+    parser.add_argument(
+        "--inst",
+        required=True,
+        help="FastMCP instructions (required, will be passed verbatim)"
+    )
 
     args = parser.parse_args()
 
@@ -45,11 +55,20 @@ def main():
 
     exts = [ext.strip() for ext in args.exts.split(",")]
 
+    if not args.title.strip():
+        print("Error: --title cannot be empty", file=sys.stderr)
+        sys.exit(1)
+    if not args.inst.strip():
+        print("Error: --inst cannot be empty", file=sys.stderr)
+        sys.exit(1)
+
     config = Config(
         data_folder=str(data_folder),
         index_folder=str(index_folder),
         exts=exts,
-        rebuild_threshold=args.rebuild_threshold
+        rebuild_threshold=args.rebuild_threshold,
+        title=args.title,
+        inst=args.inst
     )
 
     print("[DEBUG] Creating MicroRAGServer instance...", file=sys.stderr, flush=True)
